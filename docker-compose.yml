@@ -1,0 +1,45 @@
+services:
+  frontend:
+    restart: unless-stopped  # Restart the backend container unless it was stopped
+    build:
+      context: ./frontend  # Path to your frontend folder (static files)
+    container_name: frontend
+    ports:
+      - "80:80"  # Expose port 80 for the frontend (NGINX serves static files)
+    depends_on:
+      - backend
+    networks:
+      - chat-network
+    
+  backend:
+    restart: unless-stopped  # Restart the backend container unless it was stopped
+    build:
+      context: ./backend  # Path to your backend folder
+    container_name: backend
+    ports:
+      - "8000:8000"
+    networks:
+      - chat-network
+    depends_on:
+      - redis
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redis:
+    restart: unless-stopped  # Restart the backend container unless it was stopped
+    image: redis:alpine  # Use the official Redis image (alpine for smaller size)
+    container_name: redis
+    ports:
+      - "6379:6379"  # Expose Redis on port 6379
+    networks:
+      - chat-network
+    volumes:
+      - redis-data:/data  # Persist Redis data in a Docker volume
+
+networks:
+  chat-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local

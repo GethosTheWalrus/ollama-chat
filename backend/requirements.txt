@@ -1,0 +1,9 @@
+asyncio
+python-socketio[asgi]
+ollama
+langchain
+langchain-community
+langchain-core
+redis
+eventlet
+uvicorn
