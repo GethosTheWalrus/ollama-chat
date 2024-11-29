@@ -12,6 +12,9 @@ function displayMessage(message, isUser = true) {
     // Parse Markdown content
     message = parseMarkdown(message);
 
+    // Decode any HTML entities (like &lt; &gt;) in the message
+    // message = decodeHtmlEntities(message);
+
     // Process block-level code first
     message = formatBlockCode(message);
 
@@ -21,6 +24,7 @@ function displayMessage(message, isUser = true) {
     // Handle file references
     message = processFileReferences(message);
 
+    // Insert the HTML content directly without further escaping
     messageDiv.innerHTML = message;
     chatBox.appendChild(messageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -56,18 +60,37 @@ function escapeHtml(str) {
     });
 }
 
+function unescapeHtml(str) {
+    return str.replace(/[&<>"'`]/g, (match) => {
+        return {
+            '&amp;' : '&',
+            '&lt;' : '<',
+            '&gt;' : '>',
+            '&quot;' : '"',
+            '&#39;' : "'",
+            '&#96;' : '`',
+        }[match];
+    });
+}
+
+// Function to decode HTML entities back to their respective characters
+function decodeHtmlEntities(str) {
+    const doc = new DOMParser().parseFromString(str, 'text/html');
+    return doc.documentElement.textContent || doc.body.textContent;
+}
+
 // Function to format block-level code
 function formatBlockCode(message) {
     const blockCodeRegex = /```(\w+)?\n([\s\S]+?)\n```/g;
 
     return message.replace(blockCodeRegex, (match, lang, code) => {
         // Escape the code to prevent XSS vulnerabilities
-        const escapedCode = escapeHtml(code);
+        // const escapedCode = escapeHtml(code);
 
         // Use the specified language for syntax highlighting or default to plain text
         const languageClass = lang ? `language-${lang}` : 'language-text';
 
-        return `<pre class="${languageClass}"><code>${escapedCode}</code></pre>`;
+        return `<pre class="${languageClass}"><code>${code}</code></pre>`;
     });
 }
 
@@ -144,7 +167,7 @@ socket.on("response_end", () => {
 });
 
 // Attach event listeners
-sendButton.addEventListener('click', sendPrompt);
+sendButton.addEventListener('click', sendPrompt());
 messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendPrompt();
 });

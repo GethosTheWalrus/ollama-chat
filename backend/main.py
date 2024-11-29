@@ -1,13 +1,19 @@
 import socketio
 import ollama
 import asyncio
+import redis
+import json
 
 # Initialize Socket.IO server
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app = socketio.ASGIApp(sio)
 
 client = ollama.Client(
-  host="http://host.docker.internal:11434",
+    host="http://host.docker.internal:11434",
+)
+
+redis_client = redis.StrictRedis(
+    host="redis", port=6379, decode_responses=True
 )
 
 
@@ -19,16 +25,32 @@ def askOllama(prompt):
         messages=[
             {
                 "role": "user",
-                "content": f"""Respond to this prompt: {prompt}
-                               Respond with markdown formatting
+                "content": f"""Respond to this prompt: {prompt}.
+                               This reply will be displayed in a browser.
+                               Respond with markdown formatting.
                                Make sure there is no extra space around any
-                               code snippets""",
+                               code snippets.""",
             },
         ],
         stream=True
     )
     for chunk in stream:
         yield chunk["message"]["content"]
+
+
+# Define a function to get conversation history from Redis
+def get_conversation_history(sid):
+    history = redis_client.get(f"chat_history:{sid}")
+    if history:
+        return json.loads(history)
+    return []
+
+
+# Define a function to update conversation history in Redis
+def update_conversation_history(sid, role, content):
+    history = get_conversation_history(sid)
+    history.append({"role": role, "content": content})
+    redis_client.set(f"chat_history:{sid}", json.dumps(history))
 
 
 # Socket.IO event listener for the "chat" event
@@ -38,13 +60,27 @@ async def chat(sid, data):
     print(f"Received prompt from client {sid}: {prompt}")
 
     async def send_chunks():
+        # Retrieve conversation history to include context in the prompt
+        conversation_history = get_conversation_history(sid)
+        conversation = ""
+        for message in conversation_history:
+            conversation += f"{message['role']}: {message['content']}\n"
+
+        # Combine previous conversation with the new prompt
+        full_prompt = conversation + f"User: {prompt}\nBot:"
+
         # Generate and emit responses as they stream
-        for chunk in askOllama(prompt):
+        for chunk in askOllama(full_prompt):
             await sio.emit("response", {"message": chunk}, to=sid)
             await asyncio.sleep(0)  # Allow other async tasks to run
 
         # Signal the end of the response
         await sio.emit("response_end", {"message": "End of response"}, to=sid)
+
+        # Update conversation history with the user input
+        # and the generated response
+        update_conversation_history(sid, "user", prompt)
+        update_conversation_history(sid, "bot", chunk)
 
     await send_chunks()
 
