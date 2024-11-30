@@ -2,172 +2,146 @@ const chatBox = document.getElementById('chat-box');
 const messageInput = document.getElementById('message-input');
 const sendButton = document.getElementById('send-button');
 
-const socket = io("http://localhost:8000");
+const socket = io("http://" + window.location.host + ":8000");
 
 // Display a message in the chat box
 function displayMessage(message, isUser = true) {
     const messageDiv = document.createElement('div');
     messageDiv.className = isUser ? 'user-message' : 'bot-message';
 
-    // Parse Markdown content
-    message = parseMarkdown(message);
+    // Process message: Parse Markdown, format code, and handle file references
+    message = processMessage(message);
 
-    // Decode any HTML entities (like &lt; &gt;) in the message
-    // message = decodeHtmlEntities(message);
-
-    // Process block-level code first
-    message = formatBlockCode(message);
-
-    // Then process inline code
-    message = formatInlineCode(message);
-
-    // Handle file references
-    message = processFileReferences(message);
-
-    // Insert the HTML content directly without further escaping
     messageDiv.innerHTML = message;
     chatBox.appendChild(messageDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Apply Prism.js syntax highlighting to all code blocks
+    // Apply Prism.js syntax highlighting to new elements
     Prism.highlightAllUnder(messageDiv);
 
     return messageDiv; // Return the message element for real-time updates
 }
 
-// Parse Markdown content using Marked
+// Process the message content with Markdown parsing and formatting
+function processMessage(message) {
+    try {
+        message = parseMarkdown(message); // Parse Markdown
+        message = formatBlockCode(message); // Handle block-level code
+        message = formatInlineCode(message); // Handle inline code
+        message = processFileReferences(message); // Handle file references
+    } catch (error) {
+        console.error("Error processing message:", error);
+    }
+    return message;
+}
+
+// Parse Markdown using Marked
 function parseMarkdown(message) {
     try {
-        // Use Marked to parse Markdown into HTML
         return marked.parse(message);
     } catch (error) {
-        console.error("Error parsing Markdown:", error);
-        return message; // Fallback to returning the raw message if parsing fails
+        console.error("Markdown parsing failed:", error);
+        return message; // Return raw text on failure
     }
 }
 
-// Function to escape HTML characters to prevent XSS attacks
-function escapeHtml(str) {
-    return str.replace(/[&<>"'`]/g, (match) => {
-        return {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;',
-            '`': '&#96;',
-        }[match];
-    });
-}
-
-function unescapeHtml(str) {
-    return str.replace(/[&<>"'`]/g, (match) => {
-        return {
-            '&amp;' : '&',
-            '&lt;' : '<',
-            '&gt;' : '>',
-            '&quot;' : '"',
-            '&#39;' : "'",
-            '&#96;' : '`',
-        }[match];
-    });
-}
-
-// Function to decode HTML entities back to their respective characters
-function decodeHtmlEntities(str) {
-    const doc = new DOMParser().parseFromString(str, 'text/html');
-    return doc.documentElement.textContent || doc.body.textContent;
-}
-
-// Function to format block-level code
+// Handle block-level code formatting
 function formatBlockCode(message) {
     const blockCodeRegex = /```(\w+)?\n([\s\S]+?)\n```/g;
-
     return message.replace(blockCodeRegex, (match, lang, code) => {
-        // Escape the code to prevent XSS vulnerabilities
-        // const escapedCode = escapeHtml(code);
-
-        // Use the specified language for syntax highlighting or default to plain text
         const languageClass = lang ? `language-${lang}` : 'language-text';
-
         return `<pre class="${languageClass}"><code>${code}</code></pre>`;
     });
 }
 
-// Function to format inline code
+// Handle inline code formatting
 function formatInlineCode(message) {
-    // Use the existing Markdown-parsed `<code>` elements
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = message;
-
     tempDiv.querySelectorAll('code').forEach((codeElement) => {
-        // Skip block-level code elements (inside <pre>)
-        if (codeElement.parentElement.tagName.toLowerCase() === 'pre') return;
-
-        // Add the `inline-code` class to inline code
-        codeElement.classList.add('inline-code');
+        if (codeElement.parentElement.tagName.toLowerCase() !== 'pre') {
+            codeElement.classList.add('inline-code');
+        }
     });
-
     return tempDiv.innerHTML;
 }
 
-// Pre-process message to prevent filenames and file extensions from being treated as inline code
+// Handle file references to avoid them being treated as inline code
 function processFileReferences(message) {
     const fileRefRegex = /(\.\w+)(?=\s|$)/g;
     return message.replace(fileRefRegex, '<span class="file-reference">$1</span>');
 }
 
-// Listen for the welcome message
-socket.on("message", (data) => {
-    console.log("Server:", data.message);
-});
+// Disable send button and input
+function disableSendButton() {
+    sendButton.disabled = true;
+    sendButton.classList.add('disabled');
+    messageInput.disabled = true;
+}
 
-// Track the current bot message being constructed
-let currentBotMessageDiv = null;
-let accumulatedResponse = "";
+// Enable send button and input
+function enableSendButton() {
+    sendButton.disabled = false;
+    sendButton.classList.remove('disabled');
+    messageInput.disabled = false;
+    messageInput.placeholder = "Type your message...";
+}
+
+// Function to add the rainbow glow animation to the input field
+function startProcessing() {
+    messageInput.classList.add("processing"); // Add the glow effect
+    sendButton.disabled = true; // Disable the send button while processing
+}
+
+// Function to stop the rainbow glow animation and re-enable the send button
+function stopProcessing() {
+    messageInput.classList.remove("processing"); // Remove the glow effect
+    sendButton.disabled = false; // Re-enable the send button after processing
+}
 
 // Send a prompt to the server
 function sendPrompt(prompt = messageInput.value.trim()) {
     if (!prompt) return;
     socket.emit("chat", { text: prompt });
-    displayMessage(prompt); // Display the user's message
+    messageInput.placeholder = "Thinking...";
+    displayMessage(prompt); // Show the user's message
     messageInput.value = '';
+    startProcessing(); // Start the glow effect while processing
+    disableSendButton();
 }
 
-// Listen for streamed response chunks
+// Handle streamed bot response
+let currentBotMessageDiv = null;
+let accumulatedResponse = "";
+
 socket.on("response", (data) => {
-    console.log("Response chunk:", data.message);
-
+    stopProcessing();
     accumulatedResponse += data.message;
-
+    messageInput.placeholder = "Answering...";
     if (!currentBotMessageDiv) {
         currentBotMessageDiv = displayMessage('', false);
     }
-
-    // Update the message div with the accumulated response
-    currentBotMessageDiv.innerHTML = accumulatedResponse;
-
-    // Parse Markdown first
-    currentBotMessageDiv.innerHTML = parseMarkdown(currentBotMessageDiv.innerHTML);
-
-    // Process block-level code and then inline code
-    currentBotMessageDiv.innerHTML = formatBlockCode(currentBotMessageDiv.innerHTML);
-    currentBotMessageDiv.innerHTML = formatInlineCode(currentBotMessageDiv.innerHTML);
-
-    // Apply Prism.js syntax highlighting
-    Prism.highlightAllUnder(currentBotMessageDiv);
+    currentBotMessageDiv.innerHTML = processMessage(accumulatedResponse);
+    Prism.highlightAllUnder(currentBotMessageDiv); // Apply syntax highlighting
     chatBox.scrollTop = chatBox.scrollHeight;
 });
 
-// Listen for the end of the response
+// Handle the end of the response
 socket.on("response_end", () => {
-    console.log("Response completed.");
     currentBotMessageDiv = null;
     accumulatedResponse = "";
+    enableSendButton();
+});
+
+// Handle errors
+socket.on("error", (error) => {
+    console.error("Socket error:", error);
+    messageInput.placeholder = "Chat with Ollama...";
+    stopProcessing(); // Stop the glow effect in case of error
 });
 
 // Attach event listeners
-sendButton.addEventListener('click', sendPrompt());
+sendButton.addEventListener('click', () => sendPrompt());
 messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') sendPrompt();
 });

@@ -3,33 +3,39 @@ import ollama
 import asyncio
 import redis
 import json
+import os
 
 # Initialize Socket.IO server
 sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app = socketio.ASGIApp(sio)
 
 client = ollama.Client(
-    host="http://host.docker.internal:11434",
+    host=os.getenv("OLLAMA_URL", "http://host.docker.internal:11434"),
 )
 
 redis_client = redis.StrictRedis(
-    host="redis", port=6379, decode_responses=True
+    host=os.getenv("REDIS_HOST", "redis"),
+    port=os.getenv("REDIS_PORT", 6379),
+    decode_responses=True
 )
 
 
 # Define a function to generate responses using Ollama
-def askOllama(prompt):
+def askOllama(history, prompt):
     # Stream a response from Ollama
     stream = client.chat(
         model="llama3.2:latest",
         messages=[
             {
                 "role": "user",
-                "content": f"""Respond to this prompt: {prompt}.
+                "content": f"""Using this context: {history}
+                               Respond to this prompt: {prompt}.
                                This reply will be displayed in a browser.
                                Respond with markdown formatting.
                                Make sure there is no extra space around any
-                               code snippets.""",
+                               code snippets. Do not include any chains
+                               of equal signs or dashes for separating
+                               sections of text.""",
             },
         ],
         stream=True
@@ -67,10 +73,10 @@ async def chat(sid, data):
             conversation += f"{message['role']}: {message['content']}\n"
 
         # Combine previous conversation with the new prompt
-        full_prompt = conversation + f"User: {prompt}\nBot:"
+        # full_prompt = conversation + f"User: {prompt}\nBot:"
 
         # Generate and emit responses as they stream
-        for chunk in askOllama(full_prompt):
+        for chunk in askOllama(conversation, prompt):
             await sio.emit("response", {"message": chunk}, to=sid)
             await asyncio.sleep(0)  # Allow other async tasks to run
 
