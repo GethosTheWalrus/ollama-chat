@@ -28,12 +28,15 @@ def askOllama(history, prompt):
         messages=[
             {
                 "role": "user",
-                "content": f"""Using this context: {history}
+                "content": f"""Refer to this converation history,
+                               but do not directly mention it: {history}
                                Respond to this prompt: {prompt}.
-                               This reply will be displayed in a browser.
-                               Respond with markdown formatting.
-                               Make sure there is no extra space around any
-                               code snippets. Do not include any chains
+                               Adhere to the following rules:
+                               1. This reply will be displayed in a browser.
+                               2. Respond with markdown formatting.
+                               3. Make sure there is no extra space around any
+                               code snippets.
+                               4. Do not include any chains
                                of equal signs or dashes for separating
                                sections of text.""",
             },
@@ -71,9 +74,6 @@ async def chat(sid, data):
         conversation = ""
         for message in conversation_history:
             conversation += f"{message['role']}: {message['content']}\n"
-
-        # Combine previous conversation with the new prompt
-        # full_prompt = conversation + f"User: {prompt}\nBot:"
 
         # Generate and emit responses as they stream
         for chunk in askOllama(conversation, prompt):

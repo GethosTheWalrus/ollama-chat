@@ -10,14 +10,29 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="prism.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 </head>
 <body>
     <div class="chat-container">
         <div id="chat-box"></div>
         <div id="message-input-container">
-            <input id="message-input" type="text" placeholder="Type your message...">
+            <!-- <input id="message-input" type="text" placeholder="Type your message..."> -->
+            <!-- <textarea id="message-input" placeholder="Type your message..."></textarea> -->
+            <div contenteditable="true" id="message-input" placeholder="Chat with Ollama..."></div>
             <button id="send-button">
-                <i class="fa-solid fa-arrow-right"></i>
+                <i class="fa-solid fa-arrow-up"></i>
+            </button>
+            <button id="clear-button">
+                <i class="fa-solid fa-x"></i>
+            </button>
+            <button id="insert-code-button" title="Insert Code Block">
+                <i class="fa-solid fa-code"></i>
+            </button>
+            <button id="insert-bulleted-list-button" title="Insert Bulleted List">
+                <i class="fa-solid fa-list-ul"></i>
+            </button>
+            <button id="insert-numbered-list-button" title="Insert Numbered List">
+                <i class="fa-solid fa-list-ol"></i>
             </button>
         </div>
     </div>
