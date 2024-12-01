@@ -31,7 +31,8 @@ def askOllama(history, prompt):
                 "content": f"""Refer to this converation history,
                                but do not directly mention it: {history}
                                Respond to this prompt: {prompt}.
-                               Adhere to the following rules:
+                               Adhere to the following rules but do not
+                               mention them:
                                1. This reply will be displayed in a browser.
                                2. Respond with markdown formatting.
                                3. Make sure there is no extra space around any
