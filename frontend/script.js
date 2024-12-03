@@ -5,6 +5,15 @@ const clearButton = document.getElementById('clear-button');
 const insertCodeButton = document.getElementById('insert-code-button');
 const insertBulletedListButton = document.getElementById('insert-bulleted-list-button');
 const insertNumberedListButton = document.getElementById('insert-numbered-list-button');
+const commandPane = document.getElementById("command-pane");
+
+let lastCursorPos = null
+
+const commands = [
+    { name: "weather", description: "Get current weather (city)" },
+    { name: "time", description: "Get the current time" },
+    { name: "quote", description: "Fetch a random quote" },
+];
 
 const socket = io("http://" + window.location.host + ":8000");
 
@@ -30,7 +39,7 @@ function displayMessage(message, rawMessage = "", isUser = true) {
 function processMessage(message) {
     try {
         message = parseMarkdown(message); // Parse Markdown
-        message = formatBlockCode(message); // Handle block-level code
+        // message = formatBlockCode(message); // Handle block-level code
         message = formatInlineCode(message); // Handle inline code
         message = processFileReferences(message); // Handle file references
         // message = formatNewlines(message); // Handle newlines
@@ -59,8 +68,13 @@ function formatBlockCode(message) {
     const blockCodeRegex = /```(\w+)?\n([\s\S]+?)\n```/g;
     return message.replace(blockCodeRegex, (match, lang, code) => {
         const languageClass = lang ? `language-${lang}` : 'language-text';
-        return `<pre class="${languageClass}"><code>${code}</code></pre>`;
+        const codeBlockId = generateGUID();
+        return `<button class="copy-code-button">Copy Code</button><pre class="${languageClass}"><code data-code-id="${codeBlockId}">${code}</code></pre>`;
     });
+}
+
+function generateGUID() {
+    return crypto.randomUUID();
 }
 
 // Handle inline code formatting
@@ -117,12 +131,13 @@ function stopProcessing() {
 // Send a prompt to the server
 function sendPrompt(prompt = messageInput.textContent.trim(), rawPrompt = messageInput.innerHTML) {
     if (!prompt) return;
+    console.log(prompt);
     socket.emit("chat", { text: prompt });
     messageInput.placeholder = "Thinking...";
     displayMessage(prompt, rawPrompt); // Show the user's message
-    clearMessageInput();
     startProcessing(); // Start the glow effect while processing
     disableSendButton();
+    clearMessageInput();
 }
 
 function clearMessageInput() {
@@ -274,16 +289,18 @@ function moveCursorOutOfCodeBlock(codeBlock) {
     selection.addRange(newRange);
 }
 
-// function detectLanguageAndApplyHighlighting(codeBlock) {
-//     const rawCode = codeBlock.textContent; // Get the code from the block
-//     const detected = hljs.highlightAuto(rawCode); // Automatically detect language
-    
-//     // Apply the detected language and highlighted HTML
-//     codeBlock.className = `language-${detected.language}`;
-//     codeBlock.innerHTML = detected.value;
-
-//     console.log(`Detected language: ${detected.language}`); // For debugging
-// }
+function updateCommandPane(filterText) {
+    const filteredCommands = commands.filter(cmd =>
+        cmd.name.toLowerCase().includes(filterText.toLowerCase()) ||
+        cmd.description.toLowerCase().includes(filterText.toLowerCase())
+    );
+    commandPane.innerHTML = filteredCommands.length
+        ? filteredCommands
+            .map(cmd => `<div class="command-item" data-command="${cmd.name}">@${cmd.name} - ${cmd.description}</div>`)
+            .join('')
+        : '<div class="command-item disabled">No commands found</div>';
+    commandPane.style.display = filteredCommands.length ? 'block' : 'none';
+}
 
 // Attach event listeners
 let timeout;
@@ -396,4 +413,143 @@ messageInput.addEventListener("paste", (event) => {
 
     // Reapply Prism.js highlighting
     Prism.highlightAllUnder(messageInput);
+});
+
+messageInput.addEventListener("keyup", (e) => {
+    const text = messageInput.textContent;
+    const cursorPos = window.getSelection().anchorOffset;
+    lastCursorPos = cursorPos;
+
+    if (text[cursorPos - 1] === "@") {
+        commandPane.style.display = "block"; // Show the suggestion pane
+        updateCommandPane(""); // Show all commands initially
+    } else if (text.includes("@")) {
+        const atIndex = text.lastIndexOf("@");
+        const filterText = text.slice(atIndex + 1, cursorPos).trim();
+        updateCommandPane(filterText); // Filter commands based on user input
+    } else {
+        commandPane.style.display = "none"; // Hide the suggestion pane
+    }
+});
+
+// Listen for the command selection
+commandPane.addEventListener("click", (e) => {
+    // Only proceed if the target is a command item
+    if (e.target.classList.contains("command-item")) {
+        const command = e.target.dataset.command;
+
+        // If we have a stored cursor position, use it
+        if (lastCursorPos !== null) {
+            const messageText = messageInput.textContent;
+
+            // Find the position of the last "@" symbol before the cursor
+            const atIndex = messageText.lastIndexOf('@', lastCursorPos - 1);
+
+            // If there is an @ symbol before the cursor
+            if (atIndex !== -1) {
+                // Create a span element with the class "at-command"
+                const span = document.createElement("span");
+                span.classList.add("at-command");
+                span.textContent = command; // Span contains only the command name
+                span.setAttribute("contenteditable", "false"); // Make span non-editable
+
+                // Create a span for parentheses "(" and ")"
+                const parenthesesWrapper = document.createElement("span");
+                parenthesesWrapper.classList.add("at-param-wrapper");
+                parenthesesWrapper.setAttribute("contenteditable", "false"); // Make wrapper non-editable
+                parenthesesWrapper.classList.add("at-param");
+
+                const openingParenthesis = document.createElement("span");
+                openingParenthesis.textContent = "("; // Non-editable opening parenthesis
+                openingParenthesis.setAttribute("contenteditable", "false");
+
+                const closingParenthesis = document.createElement("span");
+                closingParenthesis.textContent = ")"; // Non-editable closing parenthesis
+                closingParenthesis.setAttribute("contenteditable", "false");
+
+                // Create an editable span for the parameters inside the parentheses
+                const paramSpan = document.createElement("span");
+                paramSpan.setAttribute("contenteditable", "true"); // Make content inside parentheses editable
+                paramSpan.textContent = ""; // Start with an empty value inside parentheses
+
+                // Append elements in the correct order
+                parenthesesWrapper.appendChild(openingParenthesis);
+                parenthesesWrapper.appendChild(paramSpan);
+                parenthesesWrapper.appendChild(closingParenthesis);
+
+                // Get the current selection and range
+                const range = document.createRange();
+                const sel = window.getSelection();
+
+                // Traverse through child nodes to find the correct text node
+                let textNode = null;
+                let offset = 0;
+
+                for (let i = 0; i < messageInput.childNodes.length; i++) {
+                    const node = messageInput.childNodes[i];
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const nodeLength = node.textContent.length;
+
+                        // Check if the cursor position is within this text node
+                        if (offset + nodeLength >= atIndex) {
+                            textNode = node;
+                            break;
+                        }
+
+                        offset += nodeLength;
+                    }
+                }
+
+                // Ensure there is a valid text node
+                if (!textNode) {
+                    console.warn("Could not find the correct text node");
+                    return;
+                }
+
+                // Ensure the cursor position is valid within the text node length
+                if (lastCursorPos > textNode.textContent.length) {
+                    console.warn('Cursor position is out of bounds');
+                    return;
+                }
+
+                // Set the range to the position where the @ symbol was
+                range.setStart(textNode, atIndex - offset);
+                range.setEnd(textNode, lastCursorPos - offset);
+
+                // Ensure the range is valid before performing the deletion and insertion
+                if (range.startOffset < range.endOffset) {
+                    try {
+                        range.deleteContents(); // Delete the existing @ command text
+                        range.insertNode(parenthesesWrapper); // Insert the parentheses wrapper span
+                        range.insertNode(span); // Insert the new span with the command
+                        
+                        // Move the cursor inside the parameter span
+                        range.setStart(paramSpan, paramSpan.textContent.length);
+                        range.setEnd(paramSpan, paramSpan.textContent.length);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+
+                        // Scroll the input into view
+                        messageInput.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                        // Refocus the input field after handling the click
+                        setTimeout(() => {
+                            messageInput.focus(); // Ensure message input stays focused
+                            lastCursorPos = null; // Reset the cursor position once it's used
+                        }, 0);
+                    } catch (error) {
+                        console.error('Error with range operation:', error);
+                    }
+                } else {
+                    console.warn('Start and end positions are not valid');
+                }
+            }
+        }
+
+        // Hide the command pane after selection
+        commandPane.style.display = "none";
+    } else {
+        // If the input is not focused, log a message or handle the error
+        console.warn('Message input is not focused or the selected element is not valid', lastCursorPos);
+    }
 });

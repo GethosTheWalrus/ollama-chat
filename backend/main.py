@@ -24,7 +24,7 @@ redis_client = redis.StrictRedis(
 def askOllama(history, prompt):
     # Stream a response from Ollama
     stream = client.chat(
-        model="llama3.2:latest",
+        model=os.getenv("OLLAMA_MODEL", "llama3.2:latest"),
         messages=[
             {
                 "role": "user",
