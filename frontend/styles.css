@@ -105,7 +105,7 @@ a {
 }
 
 [contentEditable=true]:empty:before {
-    content: attr(placeholder);
+    content: attr(data-placeholder);
     opacity: 0.6;
 }
 
@@ -199,8 +199,7 @@ a {
 }
 
 /* Disabled Send Button */
-#send-button.disabled,
-#clear-button.disabled {
+button.disabled {
     background-color: #555;
     cursor: not-allowed;
     animation: fadeInOut 1.5s infinite;

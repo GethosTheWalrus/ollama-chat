@@ -27,7 +27,7 @@ services:
     environment:
       - REDIS_HOST=redis  # Set the Redis host to the Redis container name
       - REDIS_PORT=6379  # Set the Redis port to the default Redis port
-      # - OLLAMA_URL=http://192.168.69.35:11434
+      - OLLAMA_URL=http://192.168.69.35:11434
 
   redis:
     restart: unless-stopped  # Restart the backend container unless it was stopped

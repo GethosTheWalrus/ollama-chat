@@ -2,7 +2,10 @@ import {
     messageInput,
     sendButton,
     clearButton,
-    modelSelect
+    modelSelect,
+    insertCodeButton,
+    insertBulletedListButton,
+    insertNumberedListButton
 } from './dom-elements.js'
 
 import {
@@ -19,9 +22,10 @@ import {
 
 // Send a prompt to the server
 function sendPrompt(model = modelSelect.value, prompt = messageInput.textContent.trim(), rawPrompt = messageInput.innerHTML) {
-    if (!prompt) return;
+    if (!prompt || sendButton.disabled) return;
     socket.emit("chat", { text: prompt, model: model });
-    messageInput.placeholder = "Thinking...";
+    console.log("thinking");
+    messageInput.setAttribute("data-placeholder", "Thinking...");
     displayMessage(prompt, rawPrompt); // Show the user's message
     startProcessing(); // Start the glow effect while processing
     disableSendButton();
@@ -35,23 +39,14 @@ function clearMessageInput() {
 
 // Disable send button and input
 function disableSendButton() {
-    sendButton.disabled = true;
-    clearButton.disabled = true;
-    sendButton.classList.add('disabled');
-    clearButton.classList.add('disabled');
-    messageInput.classList.add('disabled');
-    messageInput.placeholder = "Thinking...";
-    messageInput.disabled = true;
+    disableButtons();
 }
 
 // Enable send button and input
 function enableSendButton() {
-    sendButton.disabled = false;
-    clearButton.disabled = false;
-    sendButton.classList.remove('disabled');
-    clearButton.classList.remove('disabled');
-    messageInput.disabled = false;
-    messageInput.placeholder = "Chat with Ollama...";
+    enableButtons();
+    console.log("chat with ollama");
+    messageInput.setAttribute("data-placeholder", "Chat with Ollama...");
 }
 
 // Function to add the rainbow glow animation to the input field
@@ -94,6 +89,34 @@ function insertNumberedList() {
     messageInput.focus();
     const listTemplate = `<ol><li></li></ol>`;
     insertAtCaret(messageInput, listTemplate);
+}
+
+function enableButtons() {
+    sendButton.disabled = false;
+    clearButton.disabled = false;
+    insertCodeButton.disabled = false;
+    insertBulletedListButton.disabled = false;
+    insertNumberedListButton.disabled = false;
+    sendButton.classList.remove('disabled');
+    clearButton.classList.remove('disabled');
+    messageInput.classList.remove('disabled');
+    insertCodeButton.classList.remove('disabled');
+    insertBulletedListButton.classList.remove('disabled');
+    insertNumberedListButton.classList.remove('disabled');
+}
+
+function disableButtons() {
+    sendButton.disabled = true;
+    clearButton.disabled = true;
+    insertCodeButton.disabled = true;
+    insertBulletedListButton.disabled = true;
+    insertNumberedListButton.disabled = true;
+    sendButton.classList.add('disabled');
+    clearButton.classList.add('disabled');
+    messageInput.classList.add('disabled');
+    insertCodeButton.classList.add('disabled');
+    insertBulletedListButton.classList.add('disabled');
+    insertNumberedListButton.classList.add('disabled');
 }
 
 export { 

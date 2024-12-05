@@ -47,9 +47,8 @@ let currentBotMessageDiv = null;
 let accumulatedResponse = "";
 
 socket.on("response", (data) => {
-    stopProcessing();
     accumulatedResponse += data.message;
-    messageInput.placeholder = "Answering...";
+    messageInput.setAttribute("data-placeholder", "Answering...");
     if (!currentBotMessageDiv) {
         currentBotMessageDiv = displayMessage('', "", false);
     }
@@ -61,13 +60,11 @@ socket.on("response", (data) => {
 socket.on("response_end", () => {
     currentBotMessageDiv = null;
     accumulatedResponse = "";
-    messageInput.placeholder = "Chat with Ollama...";
-    enableSendButton();
+    stopProcessing();
 });
 
 socket.on("error", (error) => {
     console.error("Socket error:", error);
-    messageInput.placeholder = "Chat with Ollama...";
     stopProcessing(); // Stop the glow effect in case of error
 });
 
@@ -176,6 +173,7 @@ messageInput.addEventListener('keypress', (e) => {
         }
     } else if (e.key === 'Enter') {
         // Handle sending the prompt on Enter (without Shift)
+        e.preventDefault();
         sendPrompt();
     }
 });
