@@ -39,6 +39,8 @@ function disableSendButton() {
     clearButton.disabled = true;
     sendButton.classList.add('disabled');
     clearButton.classList.add('disabled');
+    messageInput.classList.add('disabled');
+    messageInput.placeholder = "Thinking...";
     messageInput.disabled = true;
 }
 

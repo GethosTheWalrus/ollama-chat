@@ -61,6 +61,7 @@ socket.on("response", (data) => {
 socket.on("response_end", () => {
     currentBotMessageDiv = null;
     accumulatedResponse = "";
+    messageInput.placeholder = "Chat with Ollama...";
     enableSendButton();
 });
 
