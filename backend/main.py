@@ -21,25 +21,16 @@ redis_client = redis.StrictRedis(
 
 
 # Define a function to generate responses using Ollama
-def askOllama(history, prompt):
+def askOllama(history, prompt, model):
     # Stream a response from Ollama
     stream = client.chat(
-        model=os.getenv("OLLAMA_MODEL", "llama3.2:latest"),
+        model=model,
         messages=[
             {
                 "role": "user",
                 "content": f"""Refer to this converation history,
                                but do not directly mention it: {history}
-                               Respond to this prompt: {prompt}.
-                               Adhere to the following rules but do not
-                               mention them:
-                               1. This reply will be displayed in a browser.
-                               2. Respond with markdown formatting.
-                               3. Make sure there is no extra space around any
-                               code snippets.
-                               4. Do not include any chains
-                               of equal signs or dashes for separating
-                               sections of text.""",
+                               Respond to this prompt: {prompt}.""",
             },
         ],
         stream=True
@@ -67,6 +58,7 @@ def update_conversation_history(sid, role, content):
 @sio.event
 async def chat(sid, data):
     prompt = data.get("text", "")
+    model = data.get("model", "llama3.2:latest")
     print(f"Received prompt from client {sid}: {prompt}")
 
     async def send_chunks():
@@ -77,7 +69,7 @@ async def chat(sid, data):
             conversation += f"{message['role']}: {message['content']}\n"
 
         # Generate and emit responses as they stream
-        for chunk in askOllama(conversation, prompt):
+        for chunk in askOllama(conversation, prompt, model):
             await sio.emit("response", {"message": chunk}, to=sid)
             await asyncio.sleep(0)  # Allow other async tasks to run
 

@@ -170,11 +170,11 @@ a {
     transition: background-color 0.3s, box-shadow 0.3s;
     position: absolute;
     right: 15px;
-    top: 27%;
+    top: 5px;
     width: 30px;
-    height: calc(50% - 20px);
+    height: calc(50% - 7px);
     min-height: 30px;
-    transform: translateY(-50%);
+    /* transform: translateY(-50%); */
 }
 
 #clear-button {
@@ -193,11 +193,11 @@ a {
     transition: background-color 0.3s, box-shadow 0.3s;
     position: absolute;
     right: 15px;
-    top: 73%;
+    bottom: 5px;
     width: 30px;
-    height: calc(50% - 20px);
+    height: calc(50% - 7px);
     min-height: 30px;
-    transform: translateY(-50%);
+    /* transform: translateY(-50%); */
 }
 
 /* Disabled Send Button */
@@ -385,3 +385,110 @@ pre code {
     background: rgb(255,74,0);
     background: linear-gradient(90deg, rgba(255,74,0,1) 0%, rgba(255,0,153,1) 100%);
   }
+
+  /* select styles */
+  :root {
+	--select-border: #777;
+	--select-arrow: var(--select-border);
+}
+
+select {
+	appearance: none;
+	background-color: transparent;
+	border: none;
+	padding: 0 1em 0 0;
+	margin: 0;
+	width: 100%;
+	font-family: inherit;
+	font-size: inherit;
+	cursor: inherit;
+	line-height: inherit;
+	z-index: 1;
+	outline: none;
+    color: white;
+}
+
+select::-ms-expand {
+	display: none;
+    color: white;
+}
+
+.select {
+	display: grid;
+	grid-template-areas: "select";
+	align-items: center;
+	position: absolute;
+	min-width: 15ch;
+	max-width: 30ch;
+	border: 1px solid var(--select-border);
+	border-radius: 0.25em;
+	padding: 0.25em 0.5em;
+	font-size: 15px;
+	cursor: pointer;
+	line-height: 1.1;
+    left: 160px;
+    top: 10px;
+    border-radius: 5px 5px 5px 5px;
+    background-color: #606060;
+    color: #fff;
+}
+
+.select select, .select::after {
+	grid-area: select;
+}
+
+.select:not(.select--multiple)::after {
+	content: "";
+	justify-self: end;
+	width: 0.8em;
+	height: 0.5em;
+	background-color: var(--select-arrow);
+	clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+}
+
+select:focus + .focus {
+	position: absolute;
+	top: -1px;
+	left: -1px;
+	right: -1px;
+	bottom: -1px;
+	border: 2px solid var(--select-focus);
+	border-radius: inherit;
+}
+
+select[multiple] {
+	padding-right: 0;
+  /*
+     * Safari will not reveal an option
+     * unless the select height has room to 
+     * show all of it
+     * Firefox and Chrome allow showing 
+     * a partial option
+     */
+	height: 6rem;
+  /* 
+     * Experimental - styling of selected options
+     * in the multiselect
+     * Not supported crossbrowser
+     */;
+}
+
+select[multiple] option {
+	white-space: normal;
+	outline-color: var(--select-focus);
+}
+
+.select--disabled {
+	cursor: not-allowed;
+	background-color: #eee;
+	background-image: linear-gradient(to top, #ddd, #eee 33%);
+}
+
+label {
+	font-size: 1.125rem;
+	font-weight: 500;
+}
+
+.select + label {
+	margin-top: 2rem;
+}
