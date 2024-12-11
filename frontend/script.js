@@ -33,7 +33,10 @@ import {
 import {
     insertAtCaret,
     isCursorAtEndOfCodeBlock,
-    moveCursorOutOfCodeBlock
+    moveCursorOutOfCodeBlock,
+    setCookie,
+    getCookie,
+    generateGUID
 } from './modules/utils.js';
 
 const commands = [
@@ -45,6 +48,43 @@ const commands = [
 let lastCursorPos = null;
 let currentBotMessageDiv = null;
 let accumulatedResponse = "";
+let historyLoaded = false;
+
+socket.on("connect", () => {
+    disableSendButton();
+    let chatSessionId = getCookie("chatSession");
+    if (!chatSessionId) {
+        chatSessionId = generateGUID();
+        setCookie("chatSession", chatSessionId, 30);
+    }
+    socket.emit("history", { chatSession: chatSessionId });
+    enableSendButton();
+});
+
+socket.on("history", (data) => {
+    if (historyLoaded) return;
+    disableSendButton();
+    let lastMessage = null;
+    for (var k in data.history) {
+        let message = data.history[k];
+        const d = new Date(message.timestamp);
+        const prettyDate = d.toLocaleString("en-US");
+        lastMessage = message;
+        console.log(message);
+        displayMessage(message.content, message.html, message.role == "user" ? true : false, prettyDate);
+    }
+    if (lastMessage) {
+        const d = new Date(lastMessage.timestamp);
+        const prettyDate = d.toLocaleString("en-US");
+        let lastDateDivider = document.createElement('div');
+        lastDateDivider.className = "date-divider";
+        lastDateDivider.innerHTML = prettyDate;
+        chatBox.appendChild(lastDateDivider);
+    }
+    chatBox.scrollTop = chatBox.scrollHeight;
+    enableSendButton();
+    historyLoaded = true;
+});
 
 socket.on("response", (data) => {
     accumulatedResponse += data.message;

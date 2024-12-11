@@ -7,15 +7,23 @@ import {
 } from './utils.js'
 
 // Display a message in the chat box
-function displayMessage(message, rawMessage = "", isUser = true) {
+function displayMessage(message, rawMessage = "", isUser = true, dateString = null) {
     const messageDiv = document.createElement('div');
+    const messageTime = document.createElement('div');
+    
     messageDiv.className = isUser ? 'user-message' : 'bot-message';
+    messageTime.className = 'message-time';
+    messageTime.style.textAlign = isUser ? 'right' : 'left';
 
     // Process message: Parse Markdown, format code, and handle file references
     message = processMessage(isUser ? rawMessage : message);
 
     messageDiv.innerHTML = message;
+    messageTime.innerHTML = dateString ? dateString : new Date().toLocaleTimeString();
+
+    chatBox.appendChild(messageTime);
     chatBox.appendChild(messageDiv);
+
     chatBox.scrollTop = chatBox.scrollHeight;
 
     // Apply Prism.js syntax highlighting to new elements

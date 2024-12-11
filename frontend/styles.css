@@ -35,13 +35,13 @@ a {
 /* Chat Box */
 #chat-box {
     width: 100%;
-    height: 84vh;
+    height: 83vh;
     overflow-y: auto;
     padding: 10px;
     background: url("logo.png") no-repeat center;
-    background-color: rgba(18,18,18,0.98);
+    /* background-color: rgba(18,18,18,0.98); */
     background-blend-mode: lighten;
-    /* background-color: #121212; */
+    background-color: #121212;
     border-radius: 10px;
     display: flex;
     flex-direction: column;
@@ -410,6 +410,16 @@ select::-ms-expand {
     color: white;
 }
 
+#model-select-container {
+    left: 137px;
+    top: 5px;
+}
+
+/* #chat-room-select-container {
+    left: 297px;
+    top: 5px;
+} */
+
 .select {
 	display: grid;
 	grid-template-areas: "select";
@@ -423,8 +433,6 @@ select::-ms-expand {
 	font-size: 15px;
 	cursor: pointer;
 	line-height: 1.1;
-    left: 137px;
-    top: 5px;
     border-radius: 5px 5px 5px 5px;
     background-color: #606060;
     color: #fff;
@@ -488,4 +496,19 @@ label {
 
 .select + label {
 	margin-top: 2rem;
+}
+
+.date-divider {
+    opacity: 0.4;
+    margin: 0 auto;
+    margin-top: 5px;
+    width: 100%;
+    text-align: center;
+}
+
+.message-time {
+    opacity: 0.5;
+    font-size: 10px;
+    width: 100%;
+    margin-top: 5px;
 }

@@ -17,14 +17,14 @@ import {
 } from './socket-handler.js';
 
 import {
-    insertAtCaret
+    insertAtCaret,
+    getCookie
 } from './utils.js';
 
 // Send a prompt to the server
 function sendPrompt(model = modelSelect.value, prompt = messageInput.textContent.trim(), rawPrompt = messageInput.innerHTML) {
     if (!prompt || sendButton.disabled) return;
-    socket.emit("chat", { text: prompt, model: model });
-    console.log("thinking");
+    socket.emit("chat", { text: prompt, html: rawPrompt, model: model, chatSession: getCookie("chatSession") });
     messageInput.setAttribute("data-placeholder", "Thinking...");
     displayMessage(prompt, rawPrompt); // Show the user's message
     startProcessing(); // Start the glow effect while processing
@@ -45,7 +45,6 @@ function disableSendButton() {
 // Enable send button and input
 function enableSendButton() {
     enableButtons();
-    console.log("chat with ollama");
     messageInput.setAttribute("data-placeholder", "Chat with Ollama...");
 }
 
