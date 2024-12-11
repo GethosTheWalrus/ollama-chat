@@ -70,7 +70,6 @@ socket.on("history", (data) => {
         const d = new Date(message.timestamp);
         const prettyDate = d.toLocaleString("en-US");
         lastMessage = message;
-        console.log(message);
         displayMessage(message.content, message.html, message.role == "user" ? true : false, prettyDate);
     }
     if (lastMessage) {
