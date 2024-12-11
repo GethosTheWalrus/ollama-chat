@@ -3,7 +3,7 @@ import {
 } from './dom-elements.js'
 
 import {
-    generateGUID
+    uuidv4
 } from './utils.js'
 
 // Display a message in the chat box
@@ -65,7 +65,7 @@ function formatBlockCode(message) {
     const blockCodeRegex = /```(\w+)?\n([\s\S]+?)\n```/g;
     return message.replace(blockCodeRegex, (match, lang, code) => {
         const languageClass = lang ? `language-${lang}` : 'language-text';
-        const codeBlockId = generateGUID();
+        const codeBlockId = uuidv4();
         return `<button class="copy-code-button">Copy Code</button><pre class="${languageClass}"><code data-code-id="${codeBlockId}">${code}</code></pre>`;
     });
 }
