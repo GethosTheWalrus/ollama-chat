@@ -36,7 +36,7 @@ import {
     moveCursorOutOfCodeBlock,
     setCookie,
     getCookie,
-    generateGUID
+    uuidv4
 } from './modules/utils.js';
 
 const commands = [
@@ -54,7 +54,7 @@ socket.on("connect", () => {
     disableSendButton();
     let chatSessionId = getCookie("chatSession");
     if (!chatSessionId) {
-        chatSessionId = generateGUID();
+        chatSessionId = uuidv4();
         setCookie("chatSession", chatSessionId, 30);
     }
     socket.emit("history", { chatSession: chatSessionId });
