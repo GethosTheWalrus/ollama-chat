@@ -1,9 +1,5 @@
 import 'https://cdnjs.cloudflare.com/ajax/libs/uuid/8.2.0/uuidv5.min.js';
 
-if (!crypto.randomUUID) {
-    crypto.randomUUID = () => uuidv5();
-}
-
 function setCookie(cname, cvalue, exdays) {
     const d = new Date();
     d.setTime(d.getTime() + (exdays*24*60*60*1000));
@@ -28,6 +24,12 @@ function getCookie(cname) {
 }
 
 function generateGUID() {
+    if (!crypto.randomUUID) {
+        var privns = uuidv5('null', 'ollama-chat', true);
+        var privUUID = uuidv5(privns, 'ollama-chat');
+        return privUUID;
+    }
+
     return crypto.randomUUID();
 }
 
