@@ -1,5 +1,3 @@
-import 'https://cdnjs.cloudflare.com/ajax/libs/uuid/8.2.0/uuidv5.min.js';
-
 function setCookie(cname, cvalue, exdays) {
     const d = new Date();
     d.setTime(d.getTime() + (exdays*24*60*60*1000));
@@ -23,14 +21,21 @@ function getCookie(cname) {
     return "";
 }
 
-function generateGUID() {
-    if (!crypto.randomUUID) {
-        var privns = uuidv5('null', 'ollama-chat', true);
-        var privUUID = uuidv5(privns, 'ollama-chat');
-        return privUUID;
+function uuidv4() {
+    if (window.crypto && window.crypto.getRandomValues) {
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
     }
+  
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
 
-    return crypto.randomUUID();
+function generateGUID() {
+    return crypto.randomUUID() ? crypto.randomUUID() : uuidv4();
 }
 
 function insertAtCaret(editableDiv, html) {
